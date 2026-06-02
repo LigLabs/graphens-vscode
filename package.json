@@ -11,7 +11,7 @@
   "main": "./out/extension.js",
   "contributes": {
     "viewsContainers": {
-      "activitybar": [
+      "secondarySidebar": [
         {
           "id": "graphens-ai",
           "title": "Graphens AI",
