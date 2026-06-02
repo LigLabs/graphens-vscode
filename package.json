@@ -1,0 +1,86 @@
+{
+  "name": "graphens-ai",
+  "displayName": "Graphens AI",
+  "description": "AI chat assistant integrated into VS Code sidebar",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.96.0"
+  },
+  "categories": ["AI", "Chat"],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "graphens-ai",
+          "title": "Graphens AI",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "graphens-ai": [
+        {
+          "type": "webview",
+          "id": "graphens-ai.chat",
+          "name": "Chat"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "graphens-ai.clearChat",
+        "title": "Clear Chat",
+        "category": "Graphens AI",
+        "icon": "$(trash)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "graphens-ai.clearChat",
+          "when": "view == graphens-ai.chat",
+          "group": "navigation"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Graphens AI",
+      "properties": {
+        "graphens-ai.backendUrl": {
+          "type": "string",
+          "default": "",
+          "description": "URL of the AI backend. Expects POST with {messages} body; responds with JSON or text/event-stream."
+        },
+        "graphens-ai.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Bearer token sent as Authorization header to the backend."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "pnpm run build:webview && pnpm run compile:ts",
+    "compile": "pnpm run build:webview && pnpm run compile:ts",
+    "compile:ts": "tsc -p ./",
+    "build:webview": "pnpm --filter graphens-ai-webview build",
+    "watch": "tsc -watch -p ./",
+    "dev:webview": "pnpm --filter graphens-ai-webview dev",
+    "pretest": "pnpm run compile",
+    "lint": "eslint src && pnpm --filter graphens-ai-webview lint",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^18.19.68",
+    "@types/vscode": "^1.96.0",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "@vscode/test-electron": "^2.4.1",
+    "eslint": "^8.57.1",
+    "mocha": "^10.8.2",
+    "typescript": "^5.7.3"
+  }
+}
