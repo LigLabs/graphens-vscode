@@ -1,53 +1,144 @@
 <script lang="ts">
   import { afterUpdate } from 'svelte'
-  import { vscode, type ToWebviewMessage } from './vscode'
+  import { type ToWebviewMessage } from './vscode'
 
   interface ChatMessage {
     role: 'user' | 'assistant' | 'error'
     content: string
   }
 
+  interface HistoryMessage {
+    role: 'user' | 'assistant'
+    content: string
+  }
+
   let messages: ChatMessage[] = []
+  let history: HistoryMessage[] = []
   let inputText = ''
   let isStreaming = false
   let messagesEl: HTMLElement
+  let backendUrl = ''
+  let apiKey = ''
 
   afterUpdate(() => {
     messagesEl?.scrollTo({ top: messagesEl.scrollHeight, behavior: 'smooth' })
   })
 
-  function send() {
+  async function send() {
     const text = inputText.trim()
     if (!text || isStreaming) return
     inputText = ''
-    vscode.postMessage({ type: 'sendMessage', text })
+
+    if (!backendUrl) {
+      messages = [...messages, { role: 'error', content: 'No backend URL configured. Set `graphens-ai.backendUrl` in VS Code settings.' }]
+      return
+    }
+
+    history = [...history, { role: 'user', content: text }]
+    messages = [...messages, { role: 'user', content: text }]
     isStreaming = true
+
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`
+
+      const response = await fetch(backendUrl, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ messages: history }),
+      })
+
+      if (!response.ok) {
+        const body = await response.text().catch(() => '')
+        throw new Error(`Backend responded ${response.status}: ${body || response.statusText}`)
+      }
+
+      const contentType = response.headers.get('content-type') ?? ''
+      let assistantText = ''
+
+      if (contentType.includes('text/event-stream')) {
+        messages = [...messages, { role: 'assistant', content: '' }]
+        for await (const chunk of readSse(response)) {
+          assistantText += chunk
+          const last = messages.at(-1)!
+          messages = [...messages.slice(0, -1), { ...last, content: last.content + chunk }]
+        }
+      } else {
+        const data = (await response.json()) as Record<string, unknown>
+        assistantText =
+          typeof data['message'] === 'string' ? data['message'] :
+          typeof data['content'] === 'string' ? data['content'] :
+          typeof data['text']    === 'string' ? data['text']    :
+          JSON.stringify(data)
+        messages = [...messages, { role: 'assistant', content: assistantText }]
+      }
+
+      history = [...history, { role: 'assistant', content: assistantText }]
+    } catch (err) {
+      messages = [...messages, { role: 'error', content: err instanceof Error ? err.message : String(err) }]
+      history = history.slice(0, -1) // remove the failed user turn
+    } finally {
+      isStreaming = false
+    }
+  }
+
+  async function* readSse(response: Response): AsyncGenerator<string> {
+    const reader = response.body?.getReader()
+    if (!reader) return
+
+    const decoder = new TextDecoder()
+    let buffer = ''
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() ?? ''
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          const payload = line.slice(6).trim()
+          if (payload === '[DONE]') return
+
+          try {
+            const parsed = JSON.parse(payload) as Record<string, unknown>
+            const text =
+              typeof parsed['text']    === 'string' ? parsed['text'] :
+              typeof parsed['content'] === 'string' ? parsed['content'] :
+              typeof parsed['delta']   === 'object' && parsed['delta'] !== null &&
+                typeof (parsed['delta'] as Record<string, unknown>)['text'] === 'string'
+                ? (parsed['delta'] as Record<string, unknown>)['text'] as string
+              : ''
+            if (text) yield text
+          } catch {
+            // non-JSON SSE line — ignore
+          }
+        }
+      }
+    } finally {
+      reader.releaseLock()
+    }
   }
 
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      send()
+      void send()
     }
   }
 
   window.addEventListener('message', (event: MessageEvent) => {
     const msg = event.data as ToWebviewMessage
 
-    if (msg.type === 'addMessage') {
-      messages = [...messages, { role: msg.role, content: msg.content }]
-    } else if (msg.type === 'streamChunk') {
-      const last = messages.at(-1)
-      if (last?.role === 'assistant') {
-        messages = [...messages.slice(0, -1), { ...last, content: last.content + msg.text }]
-      }
-    } else if (msg.type === 'streamEnd') {
-      isStreaming = false
-    } else if (msg.type === 'streamError') {
-      messages = [...messages, { role: 'error', content: msg.message }]
-      isStreaming = false
+    if (msg.type === 'init') {
+      backendUrl = msg.backendUrl
+      apiKey = msg.apiKey
     } else if (msg.type === 'clearChat') {
       messages = []
+      history = []
       isStreaming = false
     }
   })
@@ -88,7 +179,7 @@
     ></textarea>
     <button
       class="btn btn-primary self-end"
-      on:click={send}
+      on:click={() => void send()}
       disabled={isStreaming || !inputText.trim()}
     >
       {#if isStreaming}
