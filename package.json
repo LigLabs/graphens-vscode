@@ -13,14 +13,14 @@
     "viewsContainers": {
       "secondarySidebar": [
         {
-          "id": "graphens-ai",
+          "id": "graphens-chat",
           "title": "Graphens AI",
           "icon": "media/icon.svg"
         }
       ]
     },
     "views": {
-      "graphens-ai": [
+      "graphens-chat": [
         {
           "type": "webview",
           "id": "graphens-ai.chat",
