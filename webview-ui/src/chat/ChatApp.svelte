@@ -1,15 +1,18 @@
 <script lang="ts">
   import { afterUpdate } from 'svelte'
+  import { z } from 'zod'
   import { type ToWebviewMessage } from '../vscode'
+  import { vsrune } from '../lib/vsrune.svelte'
   import { readSse, extractResponseText, buildRequestHeaders, type ChatMessage, type HistoryMessage } from '../lib/chat.service'
+
+  const backendUrlRune = vsrune('backendUrl', z.string(), '')
+  const apiKeyRune = vsrune('apiKey', z.string(), '')
 
   let messages: ChatMessage[] = []
   let history: HistoryMessage[] = []
   let inputText = ''
   let isStreaming = false
   let messagesEl: HTMLElement
-  let backendUrl = ''
-  let apiKey = ''
 
   afterUpdate(() => {
     messagesEl?.scrollTo({ top: messagesEl.scrollHeight, behavior: 'smooth' })
@@ -20,6 +23,7 @@
     if (!text || isStreaming) return
     inputText = ''
 
+    const backendUrl = backendUrlRune.current
     if (!backendUrl) {
       messages = [...messages, { role: 'error', content: 'No backend URL configured. Set `graphens-ai.backendUrl` in VS Code settings.' }]
       return
@@ -32,7 +36,7 @@
     try {
       const response = await fetch(backendUrl, {
         method: 'POST',
-        headers: buildRequestHeaders(apiKey),
+        headers: buildRequestHeaders(apiKeyRune.current),
         body: JSON.stringify({ messages: history }),
       })
 
@@ -60,7 +64,7 @@
       history = [...history, { role: 'assistant', content: assistantText }]
     } catch (err) {
       messages = [...messages, { role: 'error', content: err instanceof Error ? err.message : String(err) }]
-      history = history.slice(0, -1) // remove the failed user turn
+      history = history.slice(0, -1)
     } finally {
       isStreaming = false
     }
@@ -75,11 +79,7 @@
 
   window.addEventListener('message', (event: MessageEvent) => {
     const msg = event.data as ToWebviewMessage
-
-    if (msg.type === 'init') {
-      backendUrl = msg.backendUrl
-      apiKey = msg.apiKey
-    } else if (msg.type === 'clearChat') {
+    if (msg.type === 'clearChat') {
       messages = []
       history = []
       isStreaming = false

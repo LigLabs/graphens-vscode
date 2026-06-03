@@ -1,9 +1,11 @@
+/** Messages sent from the extension host to the webview. */
 export type ToWebviewMessage =
-  | { type: 'init'; backendUrl: string; apiKey: string }
+  | { type: 'stateLoaded'; key: string; state: unknown }
   | { type: 'clearChat' }
 
+/** Messages sent from the webview to the extension host. */
 export type FromWebviewMessage =
-  | { type: 'updateConfig'; backendUrl: string; apiKey: string }
+  | { type: 'stateChanged'; key: string; value: unknown }
 
 interface VsCodeApi {
   postMessage(message: FromWebviewMessage): void

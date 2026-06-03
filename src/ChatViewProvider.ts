@@ -1,9 +1,7 @@
 import * as vscode from 'vscode'
+import type { ToWebviewMessage, FromWebviewMessage } from './messages'
 
-// Messages sent from extension host → webview
-type ToWebviewMessage =
-  | { type: 'init'; backendUrl: string; apiKey: string }
-  | { type: 'clearChat' }
+const WORKSPACE_STATE_KEY = 'graphens-ai.webviewState'
 
 export class ChatViewProvider implements vscode.WebviewViewProvider {
   static readonly viewId = 'graphens-ai.chat'
@@ -22,12 +20,19 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
 
     webviewView.webview.html = this.buildHtml(webviewView.webview)
 
-    void this.sendConfig()
+    webviewView.webview.onDidReceiveMessage((raw: unknown) => {
+      const msg = raw as FromWebviewMessage
+      if (msg.type === 'setState') {
+        void this.handleSetState(msg.key, msg.value)
+      }
+    })
+
+    void this.sendInit()
 
     this.context.subscriptions.push(
       vscode.workspace.onDidChangeConfiguration(e => {
         if (e.affectsConfiguration('graphens-ai')) {
-          void this.sendConfig()
+          void this.sendInit()
         }
       })
     )
@@ -37,18 +42,34 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
     this.post({ type: 'clearChat' })
   }
 
+  private async handleSetState(key: string, value: unknown) {
+    const existing =
+      this.context.workspaceState.get<Record<string, unknown>>(WORKSPACE_STATE_KEY) ?? {}
+    await this.context.workspaceState.update(WORKSPACE_STATE_KEY, { ...existing, [key]: value })
+  }
+
   private post(msg: ToWebviewMessage) {
     this.view?.webview.postMessage(msg)
   }
 
-  private async sendConfig() {
+  private async sendInit() {
     const cfg = vscode.workspace.getConfiguration('graphens-ai')
-    const backendUrl = cfg.get<string>('backendUrl', '').trim()
     const apiKey =
       (await this.context.secrets.get('graphens-ai.apiKey')) ||
-      cfg.get<string>('apiKey', '').trim() ||
-      ''
-    this.post({ type: 'init', backendUrl, apiKey })
+      cfg.get<string>('apiKey', '').trim()
+
+    // VS Code settings/secrets provide defaults; workspaceState values take precedence
+    const persisted =
+      this.context.workspaceState.get<Record<string, unknown>>(WORKSPACE_STATE_KEY) ?? {}
+
+    this.post({
+      type: 'init',
+      state: {
+        backendUrl: cfg.get<string>('backendUrl', '').trim(),
+        apiKey,
+        ...persisted,
+      },
+    })
   }
 
   private buildHtml(webview: vscode.Webview): string {

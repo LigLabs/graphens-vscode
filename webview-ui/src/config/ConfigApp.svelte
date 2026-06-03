@@ -1,20 +1,17 @@
 <script lang="ts">
-  import { vscode, type ToWebviewMessage } from '../vscode'
+  import { z } from 'zod'
+  import { vsrune } from '../lib/vsrune.svelte'
 
-  let backendUrl = ''
-  let apiKey = ''
+  const backendUrlRune = vsrune('backendUrl', z.string(), '')
+  const apiKeyRune = vsrune('apiKey', z.string(), '')
+
+  let backendUrl = backendUrlRune.current
+  let apiKey = apiKeyRune.current
   let saved = false
 
-  window.addEventListener('message', (event: MessageEvent) => {
-    const msg = event.data as ToWebviewMessage
-    if (msg.type === 'init') {
-      backendUrl = msg.backendUrl
-      apiKey = msg.apiKey
-    }
-  })
-
   function save() {
-    vscode.postMessage({ type: 'updateConfig', backendUrl, apiKey })
+    backendUrlRune.current = backendUrl
+    apiKeyRune.current = apiKey
     saved = true
     setTimeout(() => (saved = false), 2000)
   }
