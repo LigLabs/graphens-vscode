@@ -15,7 +15,6 @@ export default defineConfig({
       input: {
         chat: path.resolve(__dirname, 'src/chat/index.html'),
         config: path.resolve(__dirname, 'src/config/index.html'),
-        preview: path.resolve(__dirname, 'src/preview/index.html'),
       },
     },
   },
