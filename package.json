@@ -2,7 +2,7 @@
   "name": "graphens-ai",
   "displayName": "Graphens AI",
   "description": "AI chat assistant integrated into VS Code sidebar",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "engines": {
     "vscode": "^1.96.0"
   },
@@ -67,13 +67,10 @@
   "scripts": {
     "vscode:prepublish": "pnpm run build:webview && pnpm run compile:ts",
     "compile": "pnpm run build:webview && pnpm run compile:ts",
-    "compile:ts": "tsc -p ./",
+    "compile:ts": "vite build --config vite.extension.config.ts",
     "build:webview": "pnpm --filter graphens-ai-webview build",
-    "watch": "tsc -watch -p ./",
     "dev:webview": "pnpm --filter graphens-ai-webview dev",
-    "pretest": "pnpm run compile",
-    "lint": "eslint src && pnpm --filter graphens-ai-webview lint",
-    "test": "node ./out/test/runTest.js"
+    "package": "vsce package"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",
@@ -84,10 +81,13 @@
     "@vscode/test-electron": "^2.5.2",
     "eslint": "^10.4.0",
     "mocha": "^11.7.5",
-    "typescript": "^6.0.3"
-  },
-  "dependencies": {
+    "typescript": "^6.0.3",
     "ufo": "^1.6.4",
+    "vite": "^8.0.13",
     "zod": "^4.4.3"
-  }
+  },
+  "bundledDependencies": [
+    "ufo",
+    "zod"
+  ]
 }

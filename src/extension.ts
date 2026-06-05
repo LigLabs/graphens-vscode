@@ -7,8 +7,7 @@ export function activate(context: vscode.ExtensionContext) {
   vscode.chat.createChatParticipant('graphens-ai.tutor', graphensResponder)
 
   context.subscriptions.push(
-    // vscode.window.registerWebviewViewProvider(ChatViewProvider.viewId, provider),
-    // vscode.commands.registerCommand('graphens-ai.clearChat', () => provider.clearChat())
+    vscode.window.registerWebviewViewProvider(ChatViewProvider.viewId, provider)
   )
 }
 
