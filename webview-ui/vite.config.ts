@@ -7,8 +7,8 @@ export default defineConfig({
   plugins: [svelte({ preprocess: vitePreprocess() }), tailwindcss()],
 
   build: {
-    outDir: path.resolve(__dirname, '../media'),
-    emptyOutDir: false, // preserve media/icon.svg
+    outDir: path.resolve(__dirname, '../media/ui-build'),
+    emptyOutDir: true,
     rollupOptions: {
       input: {
         chat: path.resolve(__dirname, 'src/chat/main.ts'),
