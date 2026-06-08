@@ -2,6 +2,7 @@ import * as vscode from 'vscode'
 import BASE_PROMPT from '../BASE_PROMPT.md?raw'
 import {getReadme} from './context/getReadme.js'
 import {getGraphensFiles} from './context/getGraphensFiles.js'
+import { getOpenFiles } from './context/getOpenFiles'
 
 export const graphensResponder: vscode.ChatRequestHandler = async (
   request: vscode.ChatRequest,
@@ -9,26 +10,40 @@ export const graphensResponder: vscode.ChatRequestHandler = async (
   stream: vscode.ChatResponseStream,
   token: vscode.CancellationToken
 ): Promise<void> => {
-  if (request.command === 'debug_readme') {
-    const readme = await getReadme()
-    if (readme === '') {
-      return stream.markdown('No README.md file found in the workspace.')
+  switch (request.command) {
+    case 'debug_readme':{
+      const readme = await getReadme()
+      if (readme === '') {
+        return stream.markdown('No README.md file found in the workspace.')
+      }
+      return stream.markdown(readme)
     }
-    return stream.markdown(readme)
-  } else if (request.command === 'debug_graphens_files') {
-    const files = await getGraphensFiles()
-    if (files.length === 0) {
-      return stream.markdown('No .graphens markdown files found in the workspace.')
+    case 'debug_open_files': {
+      const openFiles = await getOpenFiles()
+      if (openFiles.length === 0) {
+        return stream.markdown('No open files found.')
+      }
+      for (const file of openFiles) {
+        stream.markdown(`### ${file.path}\n\n${file.content}\n\n`)
+      }
+      return
     }
-    for (const file of files) {
-      stream.markdown(`### ${file.name}\n\n${file.content}`)
+    case 'debug_graphens_files': {
+      const files = await getGraphensFiles()
+      if (files.length === 0) {
+        return stream.markdown('No .graphens markdown files found in the workspace.')
+      }
+      for (const file of files) {
+        stream.markdown(`### ${file.name}\n\n${file.content}\n\n`)
+      }
+      return
     }
-    return
   }
 
-  const [readme, graphensFiles] = await Promise.all([
+  const [readme, graphensFiles, openFiles] = await Promise.all([
     getReadme(),
-    getGraphensFiles()
+    getGraphensFiles(),
+    getOpenFiles()
   ])
 
   const prompt = [
@@ -37,7 +52,9 @@ export const graphensResponder: vscode.ChatRequestHandler = async (
       ? `Voici le contenu du README.md trouvé dans l'espace de travail :\n\n${readme}` 
       : 'Aucun fichier README.md trouvé dans l\'espace de travail.',
     'Voici la liste des fichiers .graphens markdown trouvés dans l\'espace de travail :\n\n',
-    ...graphensFiles.map(file => `---\ntitle: ${file.name}\n---\n${file.content}`)
+    ...graphensFiles.map(file => `---\ntitle: ${file.name}\n---\n${file.content}`),
+    'Voici le contenu de tous les fichiers ouverts dans l\'éditeur :\n\n',
+    ...openFiles.map(file => `### ${file.path}\n\n${file.content}`)
   ].join('\n\n ============ \n\n')
 
   const messages = [vscode.LanguageModelChatMessage.User(prompt)];
