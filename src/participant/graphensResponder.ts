@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
-import BASE_PROMPT from '../BASE_PROMPT.md?raw'
-import RESPONSE_TO_CHEATER from '../RESPONSE_TO_CHEATER.md?raw'
+import BASE_PROMPT from '../messages/BASE_PROMPT.md?raw'
+import RESPONSE_TO_CHEATER from '../messages/RESPONSE_TO_CHEATER.md?raw'
 import {getReadme} from './context/getReadme.js'
 import {getGraphensFiles} from './context/getGraphensFiles.js'
 import { getOpenFiles } from './context/getOpenFiles'
