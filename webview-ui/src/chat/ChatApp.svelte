@@ -1,74 +1,11 @@
 <script lang="ts">
-  import { afterUpdate } from 'svelte'
-  import { z } from 'zod'
-  import { type ToWebviewMessage } from '../vscode'
-  import { vsrune } from '../lib/vsrune.svelte'
-  import { readSse, extractResponseText, buildRequestHeaders, type ChatMessage, type HistoryMessage } from '../lib/chat.service'
-
-  const backendUrlRune = vsrune('backendUrl', z.string(), '')
-  const apiKeyRune = vsrune('apiKey', z.string(), '')
+  import type { ChatMessage } from '../lib/chat.service'
 
   let messages: ChatMessage[] = []
-  let history: HistoryMessage[] = []
   let inputText = ''
   let isStreaming = false
-  let messagesEl: HTMLElement
 
-  afterUpdate(() => {
-    messagesEl?.scrollTo({ top: messagesEl.scrollHeight, behavior: 'smooth' })
-  })
-
-  async function send() {
-    const text = inputText.trim()
-    if (!text || isStreaming) return
-    inputText = ''
-
-    const backendUrl = backendUrlRune.current
-    if (!backendUrl) {
-      messages = [...messages, { role: 'error', content: 'No backend URL configured. Set `graphens-ai.backendUrl` in VS Code settings.' }]
-      return
-    }
-
-    history = [...history, { role: 'user', content: text }]
-    messages = [...messages, { role: 'user', content: text }]
-    isStreaming = true
-
-    try {
-      const response = await fetch(backendUrl, {
-        method: 'POST',
-        headers: buildRequestHeaders(apiKeyRune.current),
-        body: JSON.stringify({ messages: history }),
-      })
-
-      if (!response.ok) {
-        const body = await response.text().catch(() => '')
-        throw new Error(`Backend responded ${response.status}: ${body || response.statusText}`)
-      }
-
-      const contentType = response.headers.get('content-type') ?? ''
-      let assistantText = ''
-
-      if (contentType.includes('text/event-stream')) {
-        messages = [...messages, { role: 'assistant', content: '' }]
-        for await (const chunk of readSse(response)) {
-          assistantText += chunk
-          const last = messages.at(-1)!
-          messages = [...messages.slice(0, -1), { ...last, content: last.content + chunk }]
-        }
-      } else {
-        const data = (await response.json()) as Record<string, unknown>
-        assistantText = extractResponseText(data)
-        messages = [...messages, { role: 'assistant', content: assistantText }]
-      }
-
-      history = [...history, { role: 'assistant', content: assistantText }]
-    } catch (err) {
-      messages = [...messages, { role: 'error', content: err instanceof Error ? err.message : String(err) }]
-      history = history.slice(0, -1)
-    } finally {
-      isStreaming = false
-    }
-  }
+  async function send() {}
 
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -76,20 +13,11 @@
       void send()
     }
   }
-
-  window.addEventListener('message', (event: MessageEvent) => {
-    const msg = event.data as ToWebviewMessage
-    if (msg.type === 'clearChat') {
-      messages = []
-      history = []
-      isStreaming = false
-    }
-  })
 </script>
 
 <div class="flex flex-col h-screen bg-base-100 text-base-content overflow-hidden">
   <!-- message list -->
-  <div class="flex-1 overflow-y-auto p-2 space-y-1" bind:this={messagesEl}>
+  <div class="flex-1 overflow-y-auto p-2 space-y-1">
     {#each messages as msg, i (i)}
       <div class="chat {msg.role === 'user' ? 'chat-end' : 'chat-start'}">
         <div

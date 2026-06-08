@@ -5,13 +5,13 @@
   const backendUrlRune = vsrune('backendUrl', z.string(), '')
   const apiKeyRune = vsrune('apiKey', z.string(), '')
 
-  let backendUrl = backendUrlRune.current
-  let apiKey = apiKeyRune.current
+  let backendUrl = backendUrlRune.value
+  let apiKey = apiKeyRune.value
   let saved = false
 
   function save() {
-    backendUrlRune.current = backendUrl
-    apiKeyRune.current = apiKey
+    backendUrlRune.value = backendUrl
+    apiKeyRune.value = apiKey
     saved = true
     setTimeout(() => (saved = false), 2000)
   }

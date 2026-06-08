@@ -12,10 +12,12 @@ function scriptsToBody(): Plugin {
       order: 'post',
       handler(html) {
         const scripts: string[] = []
-        const cleaned = html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, (match) => {
-          scripts.push(match)
-          return ''
-        })
+        const cleaned = html
+          .replace(/<link\b[^>]*\brel=["']modulepreload["'][^>]*\/?>/gi, '')
+          .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, (match) => {
+            scripts.push(match)
+            return ''
+          })
         return cleaned.replace('</body>', scripts.join('\n') + '\n</body>')
       },
     },
