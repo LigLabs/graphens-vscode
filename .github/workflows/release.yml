@@ -4,6 +4,11 @@ permissions:
   id-token: write
   contents: write
   pull-requests: write
+  actions: write
+  artifact-metadata: write
+  attestations: write
+  checks: write
+  
 
 on:
   push:
