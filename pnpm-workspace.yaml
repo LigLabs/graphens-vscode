@@ -1,5 +1,5 @@
 packages:
-  - webview-ui
+  - ui
 
 onlyBuiltDependencies:
   - esbuild

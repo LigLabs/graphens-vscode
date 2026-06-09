@@ -77,7 +77,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
   private buildHtml(webview: vscode.Webview): string {
     const htmlPath = vscode.Uri.joinPath(
       this.context.extensionUri,
-      'webview-ui', 'dist', 'chat', 'index.html'
+      'ui', 'dist', 'chat', 'index.html'
     )
     const htmlDir = path.dirname(htmlPath.fsPath)
 
