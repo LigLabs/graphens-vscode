@@ -1,8 +1,12 @@
 packages:
-  - webview-ui
+  - "."
+  - ui
 
 onlyBuiltDependencies:
   - esbuild
   - svelte-preprocess
 
 minimumReleaseAge: 20160
+
+allowBuilds:
+  esbuild: true
