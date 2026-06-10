@@ -40,10 +40,16 @@ jobs:
         with:
           publish: pnpm package
 
+      - name: Get package version
+        id: pkg
+        run: |
+          echo "version=$(node -p \"require('./package.json').version\")" >> $GITHUB_OUTPUT
+
       - name: Create GitHub Release
         if: steps.changesets.outputs.hasChangesets == 'false'
         uses: softprops/action-gh-release@v1
         with:
+          tag_name: v${{ steps.pkg.outputs.version }}
           files: '*.vsix'
           generate_release_notes: true
         env:
