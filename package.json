@@ -90,6 +90,9 @@
   },
   "scripts": {
     "vscode:prepublish": "turbo run build",
+    "watch:ui": "pnpm --filter graphens-vscode-ui watch",
+    "watch:ext": "vite build --config vite.extension.config.ts --watch",
+    "watch": "concurrently \"npm:watch:ext\" \"npm:watch:ui\"",
     "build:ui": "pnpm --filter graphens-vscode-ui build",
     "build:ext": "vite build --config vite.extension.config.ts",
     "dev:ui": "pnpm --filter graphens-vscode-ui dev",
@@ -104,6 +107,7 @@
     "@typescript-eslint/eslint-plugin": "^8.59.4",
     "@typescript-eslint/parser": "^8.59.4",
     "@vscode/test-electron": "^2.5.2",
+    "concurrently": "^10.0.0",
     "consola": "^3.4.2",
     "eslint": "^10.4.0",
     "mocha": "^11.7.5",
